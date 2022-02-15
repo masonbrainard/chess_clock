@@ -14,17 +14,17 @@ int next_game = 11;
 int pause_game = 12;
 
 int gamemodes[4] = {600, 1800, 3000, 6000};
-int increment[4] = {10, 20, 0, 0};
+int increment[4] = {0, 20, 0, 0};
 int inc_i = 0;
 int inc = 0;
 
 unsigned long last_time = 0;
-int player1_time = 830;
-int player2_time = 830;
+int player1_time;
+int player2_time;
 
-bool settings = false;
-bool player1_turn = false;
-bool player2_turn = false;
+bool settings;
+bool player1_turn;
+bool player2_turn;
 
 void setup(){
   pinMode(4, OUTPUT);
@@ -38,6 +38,14 @@ void setup(){
   pinMode(player2_button, INPUT);
   pinMode(next_game, INPUT);
   pinMode(pause_game, INPUT);
+  
+  settings = false;
+  player1_turn = false;
+  player2_turn = false;
+  
+  player1_time = gamemodes[0];
+  player2_time = gamemodes[0];
+  inc = 0;
 }
 
 void loop()
@@ -60,13 +68,13 @@ void loop()
     
     if(digitalRead(player1_button) == HIGH)
     {
-     settings = false;
+     settings = true;
      player2_turn = true;
       break;
     }
      if(digitalRead(player2_button) == HIGH)
      {
-      settings = false;
+      settings = true;
        player1_turn = true;
        break;
      }
@@ -82,13 +90,20 @@ void loop()
       display(player2_time);
       res_disp();
       if(check_pause())
+      {
+        player1_time -= (millis() - last_time)/100;
         break;
+      }
       if(check_timeout(player1_time - ((millis() - last_time)/100)))
+      {
+        player1_time = 0;
         break;
+      }
     }
     if(settings)
     {
       player1_time -= (millis() - last_time)/100;
+      player1_time += inc;
       last_time = millis();
       player2_turn = true;
     }
@@ -102,13 +117,20 @@ void loop()
       display(player2_time - ((millis() - last_time)/100));
       res_disp();
       if(check_pause())
+      {
+        player2_time -= (millis() - last_time)/100;
         break;
+      }
       if(check_timeout(player2_time - ((millis() - last_time)/100)))
+      {
+       	player2_time = 0;
         break;
+      }
     }
     if(settings)
     {
       player2_time -= (millis() - last_time)/100;
+      player2_time += inc;
       last_time = millis();
       player1_turn = true;
     }
