@@ -10,15 +10,23 @@ int player1_button = 10;
 int player2_button = 9;
 int disp_pin = 8;
 int disp_res = 13;
+int next_game = 11;
+int pause_game = 12;
+
+int gamemodes[4] = {600, 1800, 3000, 6000};
+int increment[4] = {10, 20, 0, 0};
+int inc_i = 0;
+int inc = 0;
 
 unsigned long last_time = 0;
-long player1_time = 83;
-long player2_time = 83;
+int player1_time = 830;
+int player2_time = 830;
 
 bool settings = false;
+bool player1_turn = false;
+bool player2_turn = false;
 
-void setup()
-{
+void setup(){
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
@@ -28,31 +36,109 @@ void setup()
   
   pinMode(player1_button, INPUT);
   pinMode(player2_button, INPUT);
+  pinMode(next_game, INPUT);
+  pinMode(pause_game, INPUT);
 }
 
 void loop()
 {
-  last_time = millis();
-  while(digitalRead(player1_button) == LOW)
+  if(!settings)
   {
-    display(player1_time - ((millis() - last_time)/1000));
-  	display(player2_time);
-    res_disp();
-  }
-  player1_time -= (millis() - last_time)/1000;
-  last_time = millis();
-  while(digitalRead(player2_button) == LOW)
-  {
+   while(true)
+   {
     display(player1_time);
-  	display(player2_time - ((millis() - last_time)/1000));
+    display(player2_time);
     res_disp();
+     
+    if(digitalRead(next_game) == HIGH)
+    {
+      inc_i = (inc_i <=4 ? inc_i + 1 : 0);
+      player1_time = gamemodes[inc_i];
+      player2_time = gamemodes[inc_i]; 
+      inc = increment[inc_i];
+    }
+    
+    if(digitalRead(player1_button) == HIGH)
+    {
+     settings = false;
+     player2_turn = true;
+      break;
+    }
+     if(digitalRead(player2_button) == HIGH)
+     {
+      settings = false;
+       player1_turn = true;
+       break;
+     }
+   }
+   last_time = millis();
   }
-  player2_time -= (millis() - last_time)/1000;
-  last_time = millis();
-}
 
+  if(player1_turn)
+  {
+    while(digitalRead(player1_button) == LOW)
+    {
+      display(player1_time - ((millis() - last_time)/100));
+      display(player2_time);
+      res_disp();
+      if(check_pause())
+        break;
+      if(check_timeout(player1_time - ((millis() - last_time)/100)))
+        break;
+    }
+    if(settings)
+    {
+      player1_time -= (millis() - last_time)/100;
+      last_time = millis();
+      player2_turn = true;
+    }
+  }
+  
+  if(player2_turn)
+  {
+    while(digitalRead(player2_button) == LOW)
+    {
+      display(player1_time);
+      display(player2_time - ((millis() - last_time)/100));
+      res_disp();
+      if(check_pause())
+        break;
+      if(check_timeout(player2_time - ((millis() - last_time)/100)))
+        break;
+    }
+    if(settings)
+    {
+      player2_time -= (millis() - last_time)/100;
+      last_time = millis();
+      player1_turn = true;
+    }
+  }
+}
+bool check_pause()
+{
+ if(digitalRead(pause_game) == HIGH)
+ {
+   player1_turn = false;
+   player2_turn = false;
+   settings = false;
+   return true;
+ }
+  return false;
+}
+bool check_timeout(int time)
+{
+ if(time <= 0)
+ {
+   player1_turn = false;
+   player2_turn = false;
+   settings = false;
+   return true;
+ }
+ return false;
+}
 void display(int time)
 {
+  time /= 10; //into seconds
   int temp_time = 0;
   if((temp_time = time / 600) >= 1)
   {
