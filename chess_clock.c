@@ -1,6 +1,3 @@
-// C++ code
-//
-
 int disp_res = 2;
 int disp_pin = 3;
 int deci_pin = 4;
@@ -9,9 +6,9 @@ int bits_pins[4] = {6, 7, 8, 5};
 int buzz_pin = 9;
 
 int player1_button = 10;
-int player2_button = 11;
-int next_game = 12;
-int pause_game = 13;
+int player2_button = 13;
+int next_button = 11;
+int pause_button = 12;
 
 int gamemodes[4] = {600, 1800, 3000, 6000};
 int increment[4] = {0, 20, 0, 0};
@@ -25,6 +22,9 @@ int player2_time;
 bool settings;
 bool player1_turn;
 bool player2_turn;
+bool low_power;
+
+bool interrupted;
 
 int bits_bins[10][4] = {{0,0,0,0},
 {0,0,0,1},{0,0,1,0},{0,0,1,1},
@@ -32,6 +32,8 @@ int bits_bins[10][4] = {{0,0,0,0},
 {0,1,1,1},{1,0,0,0},{1,0,0,1}};
 
 void setup(){
+  //Serial.begin(9600);
+  
   pinMode(bits_pins[0], OUTPUT);
   pinMode(bits_pins[1], OUTPUT);
   pinMode(bits_pins[2], OUTPUT);
@@ -45,49 +47,58 @@ void setup(){
  
   pinMode(player1_button, INPUT);
   pinMode(player2_button, INPUT);
-  pinMode(next_game, INPUT);
-  pinMode(pause_game, INPUT);
-
-  settings = false;
+  pinMode(next_button, INPUT);
+  pinMode(pause_button, INPUT);
+  
+  settings = true;
   player1_turn = false;
   player2_turn = false;
   
   player1_time = gamemodes[0];
   player2_time = gamemodes[0];
   inc = 0;
+
+  last_time = millis();
+
+  //Serial.print("Setup complete\n");
 }
 
 void loop()
 {
-  if(!settings)
+  if(settings)
   {
+   last_time = millis();
    while(true)
    {
+    //display time
     display(player1_time);
     display(player2_time);
     res_disp();
-     
-    if(digitalRead(next_game) == HIGH)
+    
+    //next game
+    if(digitalRead(next_button) == HIGH)
     {
       inc_i = (inc_i <=4 ? inc_i + 1 : 0);
       player1_time = gamemodes[inc_i];
       player2_time = gamemodes[inc_i]; 
       inc = increment[inc_i];
+
+      last_time = millis(); //reset low power timer
     }
     
+    //player button pressed
     if(digitalRead(player1_button) == HIGH)
     {
-     settings = true;
-     player2_turn = true;
+       player2_turn = true;
+       break;
+    }
+    if(digitalRead(player2_button) == HIGH)
+    {
+      player1_turn = true;
       break;
     }
-     if(digitalRead(player2_button) == HIGH)
-     {
-      settings = true;
-       player1_turn = true;
-       break;
-     }
    }
+   settings = false;
    last_time = millis();
   }
 
@@ -109,7 +120,7 @@ void loop()
         break;
       }
     }
-    if(settings)
+    if(!settings)
     {
       player1_time -= (millis() - last_time)/100;
       player1_time += inc;
@@ -132,11 +143,11 @@ void loop()
       }
       if(check_timeout(player2_time - ((millis() - last_time)/100)))
       {
-         player2_time = 0;
+        player2_time = 0;
         break;
       }
     }
-    if(settings)
+    if(!settings)
     {
       player2_time -= (millis() - last_time)/100;
       player2_time += inc;
@@ -147,14 +158,14 @@ void loop()
 }
 bool check_pause()
 {
- if(digitalRead(pause_game) == HIGH)
+ if(digitalRead(pause_button) == HIGH)
  {
    player1_turn = false;
    player2_turn = false;
-   settings = false;
+   settings = true;
    return true;
  }
-  return false;
+ return false;
 }
 bool check_timeout(int time)
 {
@@ -162,7 +173,8 @@ bool check_timeout(int time)
  {
    player1_turn = false;
    player2_turn = false;
-   settings = false;
+   settings = true;
+   buzzer();
    return true;
  }
  return false;
@@ -203,6 +215,16 @@ void display(int time)
   }
   disp_seg((time % 10));
 }
+void buzzer()
+{
+  no_disp();
+  tone(buzz_pin, 2000, 100);
+  delay(200);
+  tone(buzz_pin, 2000, 200);
+  delay(300);
+  tone(buzz_pin, 2000, 300);
+  res_disp();
+}
 void disp_seg(int i)
 {
   digitalWrite(bits_pins[0], bits_bins[i][0]);
@@ -221,4 +243,17 @@ void res_disp()
 {
   digitalWrite(disp_res, HIGH);
   digitalWrite(disp_res, LOW);
+}
+void no_disp()
+{
+  res_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
+  inc_disp();
 }
