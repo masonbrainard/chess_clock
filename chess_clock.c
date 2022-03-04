@@ -1,17 +1,17 @@
 // C++ code
 //
 
-int bits_pins[4] = {7, 6, 5, 4};
-int bits_bins[10][4] = {{0,0,0,0},
-{0,0,0,1},{0,0,1,0},{0,0,1,1},
-{0,1,0,0},{0,1,0,1},{0,1,1,0},
-{0,1,1,1},{1,0,0,0},{1,0,0,1}};
+int disp_res = 2;
+int disp_pin = 3;
+int deci_pin = 4;
+int bits_pins[4] = {6, 7, 8, 5};
+
+int buzz_pin = 9;
+
 int player1_button = 10;
-int player2_button = 9;
-int disp_pin = 8;
-int disp_res = 13;
-int next_game = 11;
-int pause_game = 12;
+int player2_button = 11;
+int next_game = 12;
+int pause_game = 13;
 
 int gamemodes[4] = {600, 1800, 3000, 6000};
 int increment[4] = {0, 20, 0, 0};
@@ -26,19 +26,28 @@ bool settings;
 bool player1_turn;
 bool player2_turn;
 
+int bits_bins[10][4] = {{0,0,0,0},
+{0,0,0,1},{0,0,1,0},{0,0,1,1},
+{0,1,0,0},{0,1,0,1},{0,1,1,0},
+{0,1,1,1},{1,0,0,0},{1,0,0,1}};
+
 void setup(){
-  pinMode(4, OUTPUT);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(7, OUTPUT);
+  pinMode(bits_pins[0], OUTPUT);
+  pinMode(bits_pins[1], OUTPUT);
+  pinMode(bits_pins[2], OUTPUT);
+  pinMode(bits_pins[3], OUTPUT);
+  pinMode(deci_pin, OUTPUT);
+  
   pinMode(disp_pin, OUTPUT);
   pinMode(disp_res, OUTPUT);
-  
+
+  pinMode(buzz_pin, OUTPUT);
+ 
   pinMode(player1_button, INPUT);
   pinMode(player2_button, INPUT);
   pinMode(next_game, INPUT);
   pinMode(pause_game, INPUT);
-  
+
   settings = false;
   player1_turn = false;
   player2_turn = false;
@@ -123,7 +132,7 @@ void loop()
       }
       if(check_timeout(player2_time - ((millis() - last_time)/100)))
       {
-       	player2_time = 0;
+         player2_time = 0;
         break;
       }
     }
@@ -171,9 +180,12 @@ void display(int time)
   {
     disp_seg(0);
   }
+  digitalWrite(deci_pin, HIGH);
+  delay(2);
+  digitalWrite(deci_pin, LOW);
   if((temp_time = time / 60) >= 1)
   {
-   	disp_seg(temp_time % 10);
+    disp_seg(temp_time % 10);
     time -= temp_time * 60;
   }
   else
@@ -182,7 +194,7 @@ void display(int time)
   }
   if((temp_time = time / 10) >= 1)
   {
-   	disp_seg((time / 10) % 10); 
+    disp_seg((time / 10) % 10); 
     time -= temp_time * 10;
   }
   else
@@ -197,7 +209,7 @@ void disp_seg(int i)
   digitalWrite(bits_pins[1], bits_bins[i][1]);
   digitalWrite(bits_pins[2], bits_bins[i][2]);
   digitalWrite(bits_pins[3], bits_bins[i][3]);
-  delay(10);
+  delay(2);
   inc_disp();
 }
 void inc_disp()
