@@ -33,7 +33,7 @@ int bits_bins[10][4] = {{0,0,0,0},
 {0,1,1,1},{1,0,0,0},{1,0,0,1}};
 
 void setup(){
-  Serial.begin(9600);
+  //Serial.begin(9600);
   
   pinMode(bits_pins[0], OUTPUT);
   pinMode(bits_pins[1], OUTPUT);
@@ -55,13 +55,13 @@ void setup(){
   
   P1_time = 0;
   P2_time = 0;
-  inc = 0;
+  inc_time = 0;
 
   is_no_disp = false;
 
   last_time = millis();
 
-  Serial.print("Setup complete\n");
+  //Serial.print("Setup complete\n");
 }
 
 void loop()
@@ -96,28 +96,62 @@ void loop()
      int i = 0;
 
      last_time = millis();
+     
      while(true)
      {
-        if(millis() - last_time < 1000)
+        if(i < 4)
         {
-          display((P1_time + (t * conv[i])));
-          display((P2_time + (t * conv[i])));
-          res_disp();
-        }
-        else if(millis() - last_time < 1500)
-        {
-          if(!is_no_disp)
+          if(millis() - last_time < 1000)
           {
-            no_disp();
-            is_no_disp = true;
+            display((P1_time + (t * conv[i])));
+            display((P2_time + (t * conv[i])));
+            res_disp();
           }
+          else if(millis() - last_time < 1500)
+          {
+            if(!is_no_disp)
+            {
+              no_disp();
+              is_no_disp = true;
+            }
+          }
+          else
+          {
+            last_time = millis();
+            res_disp();
+            is_no_disp = false;
+          }     
+        }
+        else if(i < 8)
+        {
+          if(millis() - last_time < 1000)
+          {
+            display(P1_time);
+            display((P2_time + (t * conv[i])));
+            res_disp();
+          }
+          else if(millis() - last_time < 1500)
+          {
+            if(!is_no_disp)
+            {
+              no_disp();
+              is_no_disp = true;
+            }
+          }
+          else
+          {
+            last_time = millis();
+            res_disp();
+            is_no_disp = false;
+          }     
         }
         else
         {
-          last_time = millis();
-          res_disp();
-          is_no_disp = false;
-        }       
+          //time back
+          display(0);
+          display(inc_time);
+        }
+        
         if(digitalRead(P1_button) == HIGH && !button_debounce)
         {
            if(t > 0)
@@ -125,8 +159,6 @@ void loop()
            else
               t = 9;
            set_bd();
-           Serial.print("\nt = ");
-           Serial.print(t);
         }
         if(digitalRead(P2_button) == HIGH && !button_debounce)
         {
@@ -135,13 +167,9 @@ void loop()
           else
             t = 0;
           set_bd();
-          Serial.print("\nt = ");
-          Serial.print(t);
         }
         if(digitalRead(pause_button) == HIGH && !button_debounce)
         {
-           Serial.print("\ni = ");
-           Serial.print(i);
           if(i < 4)
           {
             P1_time += (t * conv[i]);
@@ -149,9 +177,15 @@ void loop()
             i += 1;
             t = 0;
           }
-          else
+          else if(i < 8)
           {
-            Serial.print("\nSet gamestate to Set_Ready");
+            P2_time += (t * conv[i]);
+            i+= 1;
+            t = 0;
+          }
+          else if(i >= 8)
+          {
+            inc_time += (t * conv[i]);
             gameState = SET_READY;
             set_bd();
             break;
@@ -160,8 +194,6 @@ void loop()
         }
         reset_bd();
      }
-     //set p2 time (auto set to p1 time, but allow change
-     //set increment (set to 0000:0000 only go up to 10 sec?)
   }
   if(gameState == SET_READY)
   {
@@ -215,7 +247,7 @@ void loop()
     if(gameState == P1_TURN)
     {
       P1_time -= (millis() - last_time)/100;
-      P1_time += inc;
+      P1_time += inc_time;
       last_time = millis();
       gameState = P2_TURN;
     }
@@ -241,7 +273,7 @@ void loop()
     if(gameState == P2_TURN)
     {
       P2_time -= (millis() - last_time)/100;
-      P2_time += inc;
+      P2_time += inc_time;
       last_time = millis();
       gameState = P1_TURN;
     }
@@ -350,15 +382,11 @@ void set_bd() //set button debounce
 {
   bd_time = millis();
   button_debounce = true;
-  Serial.print("\nDebounce Set At ");
-  Serial.print(bd_time);
 }
 void reset_bd()
 {
   if(button_debounce && (millis() - bd_time) > 250)
   {
     button_debounce = false;
-    Serial.print("\nReset Debounce At ");
-    Serial.print(millis());
   }
 }
