@@ -5,26 +5,27 @@ int bits_pins[4] = {6, 7, 8, 5};
 
 int buzz_pin = 9;
 
-int player1_button = 10;
-int player2_button = 13;
+int P1_button = 10;
+int P2_button = 13;
 int next_button = 11;
 int pause_button = 12;
 
-int gamemodes[4] = {600, 1800, 3000, 6000};
-int increment[4] = {0, 20, 0, 0};
 int inc_i = 0;
 int inc = 0;
 
 unsigned long last_time = 0;
-int player1_time;
-int player2_time;
+int P1_time;
+int P2_time;
 
-bool settings;
-bool player1_turn;
-bool player2_turn;
-bool low_power;
+bool is_no_disp;
+bool button_debounce;
 
-bool interrupted;
+int bd_time;
+
+int conv[4] = {6000, 600, 10, 1};
+
+enum stateMachine {HOLD_TIME, SET_TIME, SET_READY, P1_TURN, P2_TURN};
+enum stateMachine gameState;
 
 int bits_bins[10][4] = {{0,0,0,0},
 {0,0,0,1},{0,0,1,0},{0,0,1,1},
@@ -45,18 +46,18 @@ void setup(){
 
   pinMode(buzz_pin, OUTPUT);
  
-  pinMode(player1_button, INPUT);
-  pinMode(player2_button, INPUT);
+  pinMode(P1_button, INPUT);
+  pinMode(P2_button, INPUT);
   pinMode(next_button, INPUT);
   pinMode(pause_button, INPUT);
   
-  settings = true;
-  player1_turn = false;
-  player2_turn = false;
+  gameState = SET_TIME;
   
-  player1_time = gamemodes[0];
-  player2_time = gamemodes[0];
+  P1_time = 0;
+  P2_time = 0;
   inc = 0;
+
+  is_no_disp = false;
 
   last_time = millis();
 
@@ -65,94 +66,171 @@ void setup(){
 
 void loop()
 {
-  if(settings)
+  if(gameState == HOLD_TIME)
   {
-   last_time = millis();
-   while(true)
-   {
-    //display time
-    display(player1_time);
-    display(player2_time);
-    res_disp();
-    
-    //next game
-    if(digitalRead(next_button) == HIGH)
-    {
-      inc_i = (inc_i <=4 ? inc_i + 1 : 0);
-      player1_time = gamemodes[inc_i];
-      player2_time = gamemodes[inc_i]; 
-      inc = increment[inc_i];
-
-      last_time = millis(); //reset low power timer
-    }
-    
-    //player button pressed
-    if(digitalRead(player1_button) == HIGH)
-    {
-       player2_turn = true;
-       break;
-    }
-    if(digitalRead(player2_button) == HIGH)
-    {
-      player1_turn = true;
-      break;
-    }
-   }
-   settings = false;
-   last_time = millis();
+     while(true)
+     {
+       display(P1_time);
+       display(P2_time);
+       res_disp();
+       
+       if(digitalRead(next_button) == HIGH || digitalRead(pause_button) == HIGH)
+       {
+          gameState = SET_TIME;
+          break;
+       }
+       if(digitalRead(P1_button) == HIGH || digitalRead(P2_button) == HIGH)
+       {
+          no_disp();
+          buzzer();
+          res_disp();
+       }
+     }
   }
-
-  if(player1_turn)
+  if(gameState == SET_TIME)
   {
-    while(digitalRead(player1_button) == LOW)
+     int t = 0;
+     int i = 0;
+
+     last_time = millis();
+     while(true)
+     {
+        if(millis() - last_time < 500)
+        {
+          display(P1_time + (t * conv[i]));
+          display(P2_time + (t * conv[i]));
+          res_disp();
+        }
+        else if(millis() - last_time < 1000)
+        {
+          if(!is_no_disp)
+          {
+            no_disp();
+            is_no_disp = true;
+          }
+        }
+        else
+        {
+          last_time = millis();
+          res_disp();
+          is_no_disp = false;
+        }       
+        if(digitalRead(P1_button) == HIGH && !button_debounce)
+        {
+           if(t > 0)
+              t -= 1;
+           else
+              t = 9;
+           set_bd();
+        }
+        if(digitalRead(P2_button) == HIGH && !button_debounce)
+        {
+          if(t < 9)
+            t += 1;
+          else
+            t = 0;
+          set_bd();
+        }
+        if(digitalRead(next_button) == HIGH && !button_debounce)
+        {
+          if(i < 4)
+          {
+            P1_time += t * conv[i];
+            P2_time += t * conv[i];
+            i += 1;
+            t = 0;
+          }
+          else
+          {
+            gameState = SET_READY;
+            break;
+          }
+          set_bd();
+        }
+        reset_bd();
+     }
+     //set p2 time (auto set to p1 time, but allow change
+     //set increment (set to 0000:0000 only go up to 10 sec?)
+  }
+  if(gameState == SET_READY)
+  {
+     while(true)
+     {
+         display(P1_time);
+         display(P2_time);
+         res_disp();      
+         
+         //hold time waiting
+         if(digitalRead(P1_button) == HIGH)
+         {
+            gameState = P2_TURN;
+            break;
+         }
+         if(digitalRead(P2_button) == HIGH)
+         {
+            gameState = P1_TURN;
+            break;
+         }
+         if(digitalRead(next_button) == HIGH && !button_debounce)
+         {
+            set_bd();
+            gameState = SET_TIME;
+            break;
+         }
+         reset_bd();
+     }
+     last_time = millis();
+  }
+  if(gameState == P1_TURN)
+  {
+    while(digitalRead(P1_button) != HIGH)
     {
-      display(player1_time - ((millis() - last_time)/100));
-      display(player2_time);
+      display(P1_time - ((millis() - last_time)/100));
+      display(P2_time);
       res_disp();
       if(check_pause())
       {
-        player1_time -= (millis() - last_time)/100;
+        P1_time -= (millis() - last_time)/100;
         break;
       }
-      if(check_timeout(player1_time - ((millis() - last_time)/100)))
+      if(check_timeout(P1_time - ((millis() - last_time)/100)))
       {
-        player1_time = 0;
+        P1_time = 0;
         break;
       }
     }
-    if(!settings)
+    if(gameState == P1_TURN)
     {
-      player1_time -= (millis() - last_time)/100;
-      player1_time += inc;
+      P1_time -= (millis() - last_time)/100;
+      P1_time += inc;
       last_time = millis();
-      player2_turn = true;
+      gameState = P2_TURN;
     }
   }
-  
-  if(player2_turn)
+  if(gameState == P2_TURN)
   {
-    while(digitalRead(player2_button) == LOW)
+    while(digitalRead(P2_button) != HIGH)
     {
-      display(player1_time);
-      display(player2_time - ((millis() - last_time)/100));
+      display(P1_time);
+      display(P2_time - ((millis() - last_time)/100));
       res_disp();
       if(check_pause())
       {
-        player2_time -= (millis() - last_time)/100;
+        P2_time -= (millis() - last_time)/100;
         break;
       }
-      if(check_timeout(player2_time - ((millis() - last_time)/100)))
+      if(check_timeout(P2_time - ((millis() - last_time)/100)))
       {
-        player2_time = 0;
+        P2_time = 0;
         break;
       }
     }
-    if(!settings)
+    if(gameState == P2_TURN)
     {
-      player2_time -= (millis() - last_time)/100;
-      player2_time += inc;
+      P2_time -= (millis() - last_time)/100;
+      P2_time += inc;
       last_time = millis();
-      player1_turn = true;
+      gameState = P1_TURN;
     }
   }
 }
@@ -160,9 +238,7 @@ bool check_pause()
 {
  if(digitalRead(pause_button) == HIGH)
  {
-   player1_turn = false;
-   player2_turn = false;
-   settings = true;
+   gameState = SET_READY;
    return true;
  }
  return false;
@@ -171,9 +247,7 @@ bool check_timeout(int time)
 {
  if(time <= 0)
  {
-   player1_turn = false;
-   player2_turn = false;
-   settings = true;
+   gameState = HOLD_TIME;
    buzzer();
    return true;
  }
@@ -256,4 +330,16 @@ void no_disp()
   inc_disp();
   inc_disp();
   inc_disp();
+}
+void set_bd() //set button debounce
+{
+  bd_time = millis();
+  button_debounce = true;
+}
+void reset_bd()
+{
+  if(button_debounce && millis() - bd_time > 250)
+  {
+    button_debounce = false;
+  }
 }
