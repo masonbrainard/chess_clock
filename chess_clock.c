@@ -14,15 +14,15 @@ int inc_i = 0;
 int inc = 0;
 
 unsigned long last_time = 0;
-int P1_time;
-int P2_time;
+unsigned long int P1_time;
+unsigned long int P2_time;
 
 bool is_no_disp;
 bool button_debounce;
 
-int bd_time;
+unsigned long int bd_time;
 
-int conv[4] = {6000, 600, 10, 1};
+unsigned long int conv[4] = {6000, 600, 100, 10};
 
 enum stateMachine {HOLD_TIME, SET_TIME, SET_READY, P1_TURN, P2_TURN};
 enum stateMachine gameState;
@@ -33,7 +33,7 @@ int bits_bins[10][4] = {{0,0,0,0},
 {0,1,1,1},{1,0,0,0},{1,0,0,1}};
 
 void setup(){
-  //Serial.begin(9600);
+  Serial.begin(9600);
   
   pinMode(bits_pins[0], OUTPUT);
   pinMode(bits_pins[1], OUTPUT);
@@ -61,7 +61,7 @@ void setup(){
 
   last_time = millis();
 
-  //Serial.print("Setup complete\n");
+  Serial.print("Setup complete\n");
 }
 
 void loop()
@@ -77,6 +77,8 @@ void loop()
        if(digitalRead(next_button) == HIGH || digitalRead(pause_button) == HIGH)
        {
           gameState = SET_TIME;
+          P1_time = 0;
+          P2_time = 0;
           break;
        }
        if(digitalRead(P1_button) == HIGH || digitalRead(P2_button) == HIGH)
@@ -86,6 +88,7 @@ void loop()
           res_disp();
        }
      }
+     set_bd();
   }
   if(gameState == SET_TIME)
   {
@@ -95,13 +98,13 @@ void loop()
      last_time = millis();
      while(true)
      {
-        if(millis() - last_time < 500)
+        if(millis() - last_time < 1000)
         {
-          display(P1_time + (t * conv[i]));
-          display(P2_time + (t * conv[i]));
+          display((P1_time + (t * conv[i])));
+          display((P2_time + (t * conv[i])));
           res_disp();
         }
-        else if(millis() - last_time < 1000)
+        else if(millis() - last_time < 1500)
         {
           if(!is_no_disp)
           {
@@ -122,6 +125,8 @@ void loop()
            else
               t = 9;
            set_bd();
+           Serial.print("\nt = ");
+           Serial.print(t);
         }
         if(digitalRead(P2_button) == HIGH && !button_debounce)
         {
@@ -130,19 +135,25 @@ void loop()
           else
             t = 0;
           set_bd();
+          Serial.print("\nt = ");
+          Serial.print(t);
         }
-        if(digitalRead(next_button) == HIGH && !button_debounce)
+        if(digitalRead(pause_button) == HIGH && !button_debounce)
         {
+           Serial.print("\ni = ");
+           Serial.print(i);
           if(i < 4)
           {
-            P1_time += t * conv[i];
-            P2_time += t * conv[i];
+            P1_time += (t * conv[i]);
+            P2_time += (t * conv[i]);
             i += 1;
             t = 0;
           }
           else
           {
+            Serial.print("\nSet gamestate to Set_Ready");
             gameState = SET_READY;
+            set_bd();
             break;
           }
           set_bd();
@@ -175,6 +186,8 @@ void loop()
          {
             set_bd();
             gameState = SET_TIME;
+            P1_time = 0;
+            P2_time = 0;
             break;
          }
          reset_bd();
@@ -253,13 +266,15 @@ bool check_timeout(int time)
  }
  return false;
 }
-void display(int time)
+void display(unsigned long int time)
 {
   time /= 10; //into seconds
-  int temp_time = 0;
+  unsigned long int temp_time = 0;
+   
   if((temp_time = time / 600) >= 1)
   {
     disp_seg(temp_time % 10);
+    
     time -= temp_time * 600;
   }
   else
@@ -335,11 +350,15 @@ void set_bd() //set button debounce
 {
   bd_time = millis();
   button_debounce = true;
+  Serial.print("\nDebounce Set At ");
+  Serial.print(bd_time);
 }
 void reset_bd()
 {
-  if(button_debounce && millis() - bd_time > 250)
+  if(button_debounce && (millis() - bd_time) > 250)
   {
     button_debounce = false;
+    Serial.print("\nReset Debounce At ");
+    Serial.print(millis());
   }
 }
