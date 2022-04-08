@@ -55,11 +55,11 @@ void setup(){
   pinMode(next_button, INPUT);
   pinMode(pause_button, INPUT);
   
-  gameState = SET_TIME;
+  gameState = SET_READY;
   
-  P1_time = 0;
-  P2_time = 0;
-  inc_time = 0;
+  P1_time = 600;
+  P2_time = 600;
+  inc_time = 10;
 
   is_no_disp = false;
 
@@ -92,47 +92,11 @@ void loop()
       }
       if(digitalRead(pause_button) == HIGH || digitalRead(next_button) == HIGH)
       {
-        gameState = SET_TIME;
+        gameState = SET_READY;
       }
     }
   }
-  //SET_TIME//
-  if(gameState == SET_TIME)
-  {
-    //SET P1/P2
-    while(true)
-    {
-      
-      display(P1_time);
-      display(P2_time);
-      res_disp();
-      is_no_disp = true;
-      
-      if(digitalRead(P1_button) == HIGH && !button_debounce)
-      {
-        P1_time += 10;
-        Serial.print("\nP1_Time = ");
-        Serial.print(P1_time);
-        set_bd(250);
-      }
-      if(digitalRead(P2_button) == HIGH && !button_debounce)
-      {
-        if(P1_time >= 10)
-        {
-          P1_time -= 10;
-        }
-        else
-        {
-          buzzer();
-        }
-        Serial.print("\nP1_Time = ");
-        Serial.print(P1_time);
-        set_bd(250);
-      }
-      reset_bd();
-    }
-    //SET INC :00 on both
-  }
+  
   //SET_READY//
   if(gameState == SET_READY)
   {
@@ -152,6 +116,18 @@ void loop()
       {
         last_time = millis();
         gameState = P1_TURN;
+      }
+      if(digitalRead(next_button) == HIGH)
+      {
+        P1_time = 1800;
+        P2_time = 1800;
+        inc_time = 20;
+      }
+      if(digitalRead(pause_button) == HIGH)
+      {
+        P1_time = 3000;
+        P2_time = 3000;
+        inc_time = 10;
       }
     }
   }
