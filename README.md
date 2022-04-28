@@ -14,9 +14,9 @@ With these in mind, I used a Atmega 328 microcontroller as I have expierence wit
 I also use a 9V battery to power with a L780V IC to bring it to 5V.
 Please check out a few pictures I have uploaded in the folder "CC_V1" to see the final product.
 
-![alt text](https://github.com/masonbrainard/chess-clock/blob/main/cc_v1/cc_v1_schematic.pdf)
+CC_V1 Schematic: https://github.com/masonbrainard/chess-clock/blob/main/cc_v1/cc_v1_schematic.pdf
 
-![alt text](https://github.com/masonbrainard/chess-clock/blob/main/cc_v1/cc_v1_layout.pdf)
+CC_V1 PCB Layout: https://github.com/masonbrainard/chess-clock/blob/main/cc_v1/cc_v1_layout.pdf
 
 With CC_V1 complete, I am working on CC_V2 with several improvements over the first version.
 I am also working on several upcoming projects so check out my other repos.
