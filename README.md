@@ -4,6 +4,8 @@ At time of writing, I have completed the first working version: CC_V1.
 
 ![alt text](https://github.com/masonbrainard/chess-clock/blob/main/cc_v1/cc_v1_on.jpg)
 
+![alt text](https://github.com/masonbrainard/chess-clock/blob/main/cc_v1/cc_v1_enclosure.jpg)
+
 A few design requirements I had for CC_V1 included:
 1. Two Buttons for players to press on their respective turn
 2. Two 7 segment displays to show time
