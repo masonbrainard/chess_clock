@@ -1,4 +1,4 @@
-# chess-clock
+# chess_clock
 This project was made to create a chess clock for over the board play.
 I have completed the first working version: CC_V1.
 
